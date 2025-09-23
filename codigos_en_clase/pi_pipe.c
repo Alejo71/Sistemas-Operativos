@@ -1,0 +1,3 @@
+#include <studio>
+int main{
+}
