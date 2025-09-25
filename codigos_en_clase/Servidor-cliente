@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>   // inet_addr, htons
+#include <sys/socket.h>  // socket, connect
+
+#define PORT 8735
+
+int main() {
+    int fd, r;
+    struct sockaddr_in cliente;
+    char buffer[1024];
+
+    // Crear socket
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == -1) {
+        perror("Error al crear socket");
+        exit(-1);
+    }
+
+    // Configurar estructura del cliente
+    cliente.sin_family = AF_INET;
+    cliente.sin_port = htons(PORT);
+    cliente.sin_addr.s_addr = inet_addr("127.0.0.1");
+    bzero(&(cliente.sin_zero), 8);  // limpiar
+
+    // Conectar con el servidor
+    r = connect(fd, (struct sockaddr *)&cliente, sizeof(struct sockaddr_in));
+    if (r == -1) {
+        perror("Error al conectar");
+        close(fd);
+        exit(-1);
+    }
+
+    // Recibir mensaje del servidor
+    r = recv(fd, buffer, sizeof(buffer), 0);
+    if (r > 0) {
+        buffer[r] = '\0';
+        printf("Servidor dice: %s\n", buffer);
+    }
+
+    // Enviar mensaje al servidor
+    const char *msg = "Hola servidor";
+    r = send(fd, msg, strlen(msg), 0);
+    if (r == -1) {
+        perror("Error al enviar");
+    }
+
+    // Cerrar socket
+    close(fd);
+
+    return 0;
+}
+
+
+
+
