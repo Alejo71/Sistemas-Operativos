@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+#define PORT 3535      // Puerto en el que escuchará el servidor
+#define BACKLOG 4      // Número máximo de conexiones en espera
+
+int main() {
+    int fd, fd2, r;
+    struct sockaddr_in server, client;
+    socklen_t size;
+    char buffer[20];
+
+    // Crear el socket (IPv4, TCP)
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+        perror("Error al crear el socket");
+        exit(1);
+    }
+
+    // Configurar la estructura del servidor
+    server.sin_family = AF_INET;
+    server.sin_port = htons(PORT);
+    server.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(server.sin_zero), 8);
+
+    // Asociar el socket con la dirección y puerto
+    r = bind(fd, (struct sockaddr *)&server, sizeof(struct sockaddr));
+    if (r < 0) {
+        perror("Error en bind");
+        close(fd);
+        exit(1);
+    }
+
+    // Poner el socket en modo escucha
+    r = listen(fd, BACKLOG);
+    if (r < 0) {
+        perror("Error en listen");
+        close(fd);
+        exit(1);
+    }
+
+    printf("Servidor esperando conexiones en el puerto %d...\n", PORT);
+
+    // Esperar a que un cliente se conecte
+    size = sizeof(struct sockaddr_in);
+    fd2 = accept(fd, (struct sockaddr *)&client, &size);
+    if (fd2 < 0) {
+        perror("Error en accept");
+        close(fd);
+        exit(1);
+    }
+
+    printf("Cliente conectado.\n");
+
+    // Enviar un mensaje al cliente
+    r = send(fd2, "Hola cliente", 12, 0);
+    if (r < 0) {
+        perror("Error en send");
+        close(fd2);
+        close(fd);
+        exit(1);
+    }
+
+    // Recibir un mensaje del cliente
+    r = recv(fd2, buffer, 20, 0);
+    if (r < 0) {
+        perror("Error en recv");
+        close(fd2);
+        close(fd);
+        exit(1);
+    }
+
+    buffer[r] = '\0';  // Aseguramos que el buffer tenga fin de cadena
+    printf("Mensaje del cliente: %s\n", buffer);
+
+    // Cerrar sockets
+    close(fd2);
+    close(fd);
+
+    printf("Conexión cerrada.\n");
+    return 0;
+}
